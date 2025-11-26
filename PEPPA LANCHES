@@ -1,0 +1,126 @@
+# src/test/resources/features/pedidos.feature
+
+# language: pt
+@hamburgueria
+Funcionalidade: Pedidos na hamburgueria Peppa Lanches
+  
+cliente
+  Eu quero saber se o item pode ser pedido, o valor total e o tempo estimado
+
+  Contexto:
+    Dado que o cardápio contém os itens:
+      | item         | preco |
+      | x-bacon      | 25.00 |
+      | x-salada     | 22.00 |
+      | batata frita | 12.00 |
+
+  @feliz
+  Cenário: Pedido simples de item existente
+    Dado que desejo pedir o item "x-bacon" com quantidade 2
+    Quando eu realizar o pedido
+    Então o valor total deve ser 50.00
+    E o tempo estimado deve ser 12
+
+  @inexistente
+  Cenário: Pedido de item inexistente
+    Dado que desejo pedir o item "milkshake" com quantidade 1
+    Quando eu realizar o pedido
+    Então deve retornar a mensagem "Item indisponível no cardápio"
+
+  @quantidade
+  Cenário: Pedido com quantidade inválida
+    Dado que desejo pedir o item "x-salada" com quantidade -4
+    Quando eu realizar o pedido
+    Então deve retornar a mensagem "Quantidade inválida"
+
+  @desconto
+  Cenário: Pedido com desconto de 10 por cento
+    Dado que desejo pedir o item "batata frita" com quantidade 3
+    Quando eu aplicar um desconto de 10 por cento
+    Então o valor total deve ser 32.40
+
+  @sla
+  Cenário: Calcular tempo estimado de preparo
+    Dado que desejo pedir o item "x-salada" com quantidade 5
+    Quando eu calcular o tempo estimado
+    Então o tempo estimado deve ser 18
+```
+
+---
+
+# src/test/java/runner/RunnerTest.java
+
+```java
+package runner;
+
+import org.junit.runner.RunWith;
+import io.cucumber.junit.Cucumber;
+import io.cucumber.junit.CucumberOptions;
+
+@RunWith(Cucumber.class)
+@CucumberOptions(
+        features = "src/test/resources/features",
+        glue = {"steps"},
+        plugin = {"pretty", "html:target/cucumber-reports"},
+        monochrome = true
+)
+public class RunnerTest {
+}
+```
+
+---
+
+# src/test/java/steps/PedidoSteps.java
+
+```java
+package steps;
+
+import io.cucumber.java.pt.*;
+import java.util.*;
+import static org.junit.Assert.*;
+
+public class PedidoSteps {
+
+    private Set<String> cardapio;
+    private String item;
+    private int quantidade;
+    private String mensagem;
+    private int tempoEstimado;
+
+    @Dado("que o cardápio possui os itens:")
+    public void que_o_cardapio_possui_os_itens(io.cucumber.datatable.DataTable dataTable) {
+        cardapio = new HashSet<>(dataTable.asList());
+    }
+
+    @Dado("que desejo pedir o item \"(.*)\" com quantidade (\\d+|-\\d+)")
+    public void que_desejo_pedir_o_item_com_quantidade(String item, int quantidade) {
+        this.item = item;
+        this.quantidade = quantidade;
+    }
+
+    @Quando("eu realizar o pedido")
+    public void eu_realizar_o_pedido() {
+        if (!cardapio.contains(item)) {
+            mensagem = "Item indisponível no cardápio";
+            return;
+        }
+
+        if (quantidade <= 0) {
+            mensagem = "Quantidade inválida";
+            return;
+        }
+
+        int quantidadeTotal = quantidade;
+        tempoEstimado = 8 + (2 * quantidadeTotal);
+    }
+
+    @Entao("o pedido deve ser concluído com tempo estimado (\\d+)")
+    public void o_pedido_deve_ser_concluido_com_tempo_estimado(int esperado) {
+        assertEquals(esperado, tempoEstimado);
+    }
+
+    @Entao("deve retornar a mensagem \"(.*)\"")
+    public void deve_retornar_a_mensagem(String esperado) {
+        assertEquals(esperado, mensagem);
+    }
+}
