@@ -1,126 +1,79 @@
-# src/test/resources/features/pedidos.feature
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
 
-# language: pt
-@hamburgueria
-Funcionalidade: Pedidos na hamburgueria Peppa Lanches
-  
-cliente
-  Eu quero saber se o item pode ser pedido, o valor total e o tempo estimado
+    <modelVersion>4.0.0</modelVersion>
 
-  Contexto:
-    Dado que o cardápio contém os itens:
-      | item         | preco |
-      | x-bacon      | 25.00 |
-      | x-salada     | 22.00 |
-      | batata frita | 12.00 |
+    <groupId>peppa</groupId>
+    <artifactId>hamburgueria-bdd</artifactId>
+    <version>1.0-SNAPSHOT</version>
+    <packaging>jar</packaging>
 
-  @feliz
-  Cenário: Pedido simples de item existente
-    Dado que desejo pedir o item "x-bacon" com quantidade 2
-    Quando eu realizar o pedido
-    Então o valor total deve ser 50.00
-    E o tempo estimado deve ser 12
+    <properties>
+        <maven.compiler.source>21</maven.compiler.source>
+        <maven.compiler.target>21</maven.compiler.target>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
-  @inexistente
-  Cenário: Pedido de item inexistente
-    Dado que desejo pedir o item "milkshake" com quantidade 1
-    Quando eu realizar o pedido
-    Então deve retornar a mensagem "Item indisponível no cardápio"
+        <cucumber.version>7.20.1</cucumber.version>
+        <junit.jupiter.version>5.11.3</junit.jupiter.version>
+        <junit.platform.version>1.11.3</junit.platform.version>
 
-  @quantidade
-  Cenário: Pedido com quantidade inválida
-    Dado que desejo pedir o item "x-salada" com quantidade -4
-    Quando eu realizar o pedido
-    Então deve retornar a mensagem "Quantidade inválida"
+        <maven.surefire.plugin.version>3.2.5</maven.surefire.plugin.version>
+    </properties>
 
-  @desconto
-  Cenário: Pedido com desconto de 10 por cento
-    Dado que desejo pedir o item "batata frita" com quantidade 3
-    Quando eu aplicar um desconto de 10 por cento
-    Então o valor total deve ser 32.40
+    <dependencies>
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-java</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
 
-  @sla
-  Cenário: Calcular tempo estimado de preparo
-    Dado que desejo pedir o item "x-salada" com quantidade 5
-    Quando eu calcular o tempo estimado
-    Então o tempo estimado deve ser 18
-```
+        <dependency>
+            <groupId>io.cucumber</groupId>
+            <artifactId>cucumber-junit-platform-engine</artifactId>
+            <version>${cucumber.version}</version>
+            <scope>test</scope>
+        </dependency>
 
----
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite</artifactId>
+            <version>${junit.platform.version}</version>
+            <scope>test</scope>
+        </dependency>
 
-# src/test/java/runner/RunnerTest.java
+        <dependency>
+            <groupId>org.junit.jupiter</groupId>
+            <artifactId>junit-jupiter</artifactId>
+            <version>${junit.jupiter.version}</version>
+            <scope>test</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.junit.platform</groupId>
+            <artifactId>junit-platform-suite-api</artifactId>
+            <version>${junit.platform.version}</version>
+            <scope>test</scope>
+            <type>jar</type>
+        </dependency>
+    </dependencies>
 
-```java
-package runner;
+    <build>
+        <plugins>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <version>3.13.0</version>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.plugin.version}</version>
+                <configuration>
+                    <useModulePath>false</useModulePath>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 
-import org.junit.runner.RunWith;
-import io.cucumber.junit.Cucumber;
-import io.cucumber.junit.CucumberOptions;
-
-@RunWith(Cucumber.class)
-@CucumberOptions(
-        features = "src/test/resources/features",
-        glue = {"steps"},
-        plugin = {"pretty", "html:target/cucumber-reports"},
-        monochrome = true
-)
-public class RunnerTest {
-}
-```
-
----
-
-# src/test/java/steps/PedidoSteps.java
-
-```java
-package steps;
-
-import io.cucumber.java.pt.*;
-import java.util.*;
-import static org.junit.Assert.*;
-
-public class PedidoSteps {
-
-    private Set<String> cardapio;
-    private String item;
-    private int quantidade;
-    private String mensagem;
-    private int tempoEstimado;
-
-    @Dado("que o cardápio possui os itens:")
-    public void que_o_cardapio_possui_os_itens(io.cucumber.datatable.DataTable dataTable) {
-        cardapio = new HashSet<>(dataTable.asList());
-    }
-
-    @Dado("que desejo pedir o item \"(.*)\" com quantidade (\\d+|-\\d+)")
-    public void que_desejo_pedir_o_item_com_quantidade(String item, int quantidade) {
-        this.item = item;
-        this.quantidade = quantidade;
-    }
-
-    @Quando("eu realizar o pedido")
-    public void eu_realizar_o_pedido() {
-        if (!cardapio.contains(item)) {
-            mensagem = "Item indisponível no cardápio";
-            return;
-        }
-
-        if (quantidade <= 0) {
-            mensagem = "Quantidade inválida";
-            return;
-        }
-
-        int quantidadeTotal = quantidade;
-        tempoEstimado = 8 + (2 * quantidadeTotal);
-    }
-
-    @Entao("o pedido deve ser concluído com tempo estimado (\\d+)")
-    public void o_pedido_deve_ser_concluido_com_tempo_estimado(int esperado) {
-        assertEquals(esperado, tempoEstimado);
-    }
-
-    @Entao("deve retornar a mensagem \"(.*)\"")
-    public void deve_retornar_a_mensagem(String esperado) {
-        assertEquals(esperado, mensagem);
-    }
-}
+</project>
